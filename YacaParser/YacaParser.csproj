@@ -1,0 +1,119 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{1BB6A057-B0CC-4EC4-9716-4B0D04917915}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>YacaParser</RootNamespace>
+    <AssemblyName>YacaParser</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="AudienceCacheBuilder">
+      <HintPath>..\libs\Targetix\AudienceCacheBuilder.exe</HintPath>
+    </Reference>
+    <Reference Include="Enyim.Caching">
+      <HintPath>..\libs\Enyim.Caching\Enyim.Caching.dll</HintPath>
+    </Reference>
+    <Reference Include="MongoDB.Bson">
+      <HintPath>..\libs\mongocsharpdriver\MongoDB.Bson.dll</HintPath>
+    </Reference>
+    <Reference Include="MongoDB.Driver">
+      <HintPath>..\libs\mongocsharpdriver\MongoDB.Driver.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\libs\Newtonsoft.Json\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="NLog, Version=2.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\libs\NLog\NLog.dll</HintPath>
+    </Reference>
+    <Reference Include="NLog.Extended, Version=2.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\libs\NLog\NLog.Extended.dll</HintPath>
+    </Reference>
+    <Reference Include="NLog.MongoDB">
+      <HintPath>..\libs\NLog\NLog.MongoDB.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+    <Reference Include="Targetix.AdMira.Config">
+      <HintPath>..\libs\Targetix\Targetix.AdMira.Config.dll</HintPath>
+    </Reference>
+    <Reference Include="Targetix.Couchbase">
+      <HintPath>..\libs\Targetix\Targetix.Couchbase.dll</HintPath>
+    </Reference>
+    <Reference Include="Targetix.Exceptions">
+      <HintPath>..\libs\Targetix\Targetix.Exceptions.dll</HintPath>
+    </Reference>
+    <Reference Include="Targetix.Helpers">
+      <HintPath>..\libs\Targetix\Targetix.Helpers.dll</HintPath>
+    </Reference>
+    <Reference Include="Targetix.Model">
+      <HintPath>..\libs\Targetix\Targetix.Model.dll</HintPath>
+    </Reference>
+    <Reference Include="Targetix.MongoDB">
+      <HintPath>..\libs\Targetix\Targetix.MongoDB.dll</HintPath>
+    </Reference>
+    <Reference Include="Targetix.MongoDB.Extensions">
+      <HintPath>..\libs\Targetix\Targetix.MongoDB.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="Targetix.Repository">
+      <HintPath>..\libs\Targetix\Targetix.Repository.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Models\CatModel.cs" />
+    <Compile Include="Downloader.cs" />
+    <Compile Include="Models\DownloaderDb.cs" />
+    <Compile Include="Models\DownloaderRepository.cs" />
+    <Compile Include="Models\StateOptions.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Spider.cs" />
+    <Compile Include="Models\YandexCatalog.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
