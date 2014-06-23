@@ -104,17 +104,18 @@ namespace YacaParser
                     SaveState();
                     CatModel catModel = queue.Dequeue();
                     log.Info("Извлечен следующий каталог {0}", catModel.Uri);
-                    Action<YandexCatalog> action = y =>
-                    {
-                        y.Catalog = catModel.Name;
-                        y.Parent = catModel.Parent;
-                        if (!y.Geo.Contains(catModel.Geo))
-                            y.Geo.Add(catModel.Geo);
-                    };
-
+                    
                     //Пропарсить каталог
                     if (catModel.Name != "ROOT")//не обрабатываем каталоги ROOT, т.к. занимет примерно треть времени(непомеченными останутся около 800)
                     {
+                        Action<YandexCatalog> action = y =>
+                        {
+                            y.Catalog = catModel.Name;
+                            y.Parent = catModel.Parent;
+                            if (!y.Geo.Contains(catModel.Geo))
+                                y.Geo.Add(catModel.Geo);
+                        };
+
                         WaitCallback(new StateOptions(catModel.Uri, catModel.Name, action));
                     }
                     //сохранение не раньше 10 минут
