@@ -113,7 +113,10 @@ namespace YacaParser
                     };
 
                     //Пропарсить каталог
-                    WaitCallback(new StateOptions(catModel.Uri, catModel.Name, action));
+                    if (catModel.Name != "ROOT")//не обрабатываем каталоги ROOT, т.к. занимет примерно треть времени(непомеченными останутся около 800)
+                    {
+                        WaitCallback(new StateOptions(catModel.Uri, catModel.Name, action));
+                    }
                     //сохранение не раньше 10 минут
                     if(_prevTimeSaving < DateTime.Now - _periodSaving)
                     {
