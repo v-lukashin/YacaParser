@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Targetix.Helpers.Security;
 using Targetix.MongoDB.Extensions.Model;
@@ -67,6 +68,14 @@ namespace YacaParser.Models
             set
             {
                 _id = value;
+            }
+        }
+        [BsonIgnoreIfNull]
+        public string ShortUrl
+        {
+            get
+            {
+                return new Regex(@"https?://([-\w.]+)/").Match(Uri).Groups[1].Value;
             }
         }
     }

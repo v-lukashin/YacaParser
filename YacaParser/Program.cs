@@ -29,6 +29,7 @@ namespace YacaParser
     {
         static void Main(string[] args)
         {
+            //Copy("YandexCatalog", "YandexCatalogAddShortUrl");
             //MergeGeneralWithBlogAndSchool();
             //TestReadSave();
             //TestDownloader();
@@ -41,7 +42,37 @@ namespace YacaParser
             //TestMemory();
             //fill();
         }
-        
+        static void Copy(string dbNameFrom, string dbNameTo)//Нужно было чтобы дописать ShortUrl в уже созданные DB
+        {
+            string connStr = "mongodb://localhost:27017/";
+            DownloaderRepository repFrom = new DownloaderRepository(new DownloaderDb(connStr+dbNameFrom));
+            DownloaderRepository repTo = new DownloaderRepository(new DownloaderDb(connStr+dbNameTo));
+            var all = repFrom.GetAll();
+            foreach (var it in all)
+            {
+                repTo.Save(it);
+            }
+        }
+
+        static void TestShortUrl()
+        {
+            string connectionString = "mongodb://localhost:27017/YandexCatalog";
+            DownloaderRepository rep = new DownloaderRepository(new DownloaderDb(connectionString));
+            var all = rep.GetAll();
+            int iter = 0;
+            foreach (var it in all)
+            {
+                Console.WriteLine(it.Uri +" -> "+it.ShortUrl);
+                iter++;
+                if (iter == 20)
+                {
+                    Console.WriteLine("Press any key to continue..");
+                    Console.ReadKey();
+                    iter = 0;
+                    Console.WriteLine("----------------------------------------");
+                }
+            }
+        }
 
         static void MergeGeneralWithBlogAndSchool()
         {
@@ -49,6 +80,7 @@ namespace YacaParser
             DownloaderRepository repRes = new DownloaderRepository(new DownloaderDb("mongodb://localhost:27017/YandexCatalogCompiled"));
 
             IEnumerable<YandexCatalog> sb = rep.GetAll();
+
             foreach (var y in sb)
             {
                 YandexCatalog cat = repRes.GetById(y.Id) ?? new YandexCatalog { Id = y.Id, Uri = y.Uri, Description = y.Description};
