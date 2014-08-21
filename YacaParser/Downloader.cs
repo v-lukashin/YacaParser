@@ -28,12 +28,13 @@ namespace YacaParser
         private const string patternNext = @"<a class=""b-pager__next"" href=""([-\w/.]*)"">(\w)*</a>";
         private const string patternAllSites = @"<a href=""([\w/]*)"">[Вв]се сайты( рубрики)?</a>";
         private const string patternDescription = @"<p class=""b-result__info"">(?<desc>.*)</p>";
-        public Downloader(string link, string currentCatalog, Action<YandexCatalog> action)//, WebClient cli)
+        private const string patternQuote = @"(?<=<span class=""b-result__quote"">Цитируемость:\s)\d+(?=</span>)";
+        public Downloader(string link, string currentCatalog, Action<YandexCatalog> action, Dictionary<string, YandexCatalog> cache)//, WebClient cli)
         {
             _link = link;
             _catalogName = currentCatalog;
             //_parentCatalog = parentCatalog;
-            _cache = Spider.AllSites;
+            _cache = cache ?? Spider.AllSites;
             _action = action;
 
             //wcli = cli;
@@ -45,7 +46,7 @@ namespace YacaParser
 
         public static void WaitCallback(object state){
             StateOptions opt = (StateOptions)state;
-            new Downloader(opt.link, opt.catalog, opt.action).Processing();
+            new Downloader(opt.link, opt.catalog, opt.action, opt.cache).Processing();
         }
 
         public void Processing()
@@ -78,6 +79,7 @@ namespace YacaParser
                     int matchCount = matches.Count;
                     int[] beginsMatches = new int[matchCount+1];
                     Regex regDescr = new Regex(patternDescription);
+                    Regex regQuote = new Regex(patternQuote);
                     for (int i = 0; i < matchCount; i++)
                     {
                         beginsMatches[i] = matches[i].Index;
@@ -101,7 +103,18 @@ namespace YacaParser
                                 descr = descrMatch.Groups["desc"].Value;
                             }
 
-                            s = new YandexCatalog { Uri = uri, Description = descr};
+                            int? quote = null;
+                            Match quoteMatch = regQuote.Match(root, beginsMatches[i], beginsMatches[i + 1] - beginsMatches[i]);
+                            if (quoteMatch.Success)
+                            {
+                                try
+                                {
+                                    quote = int.Parse(quoteMatch.Value);
+                                }
+                                catch { }
+                            }
+
+                            s = new YandexCatalog { Uri = uri, Description = descr, Quote = quote};
                             _cache.Add(uri, s);
                         }
                         _action(s);

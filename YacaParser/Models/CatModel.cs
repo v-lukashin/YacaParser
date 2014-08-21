@@ -11,6 +11,7 @@ namespace YacaParser.Models
         public string Uri { get; set; }
         public string Name { get; set; }
         public string Parent { get; set; }
+        public string FullPath { get; set; }
         public string Geo { get; set; }
     }
 }

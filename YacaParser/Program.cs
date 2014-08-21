@@ -29,6 +29,10 @@ namespace YacaParser
     {
         static void Main(string[] args)
         {
+            //MarkProduction();
+            //MarkRoot();
+            //SaveCatalogsPath();
+            //TransformYacaToFullPath();
             //Copy("YandexCatalog", "YandexCatalogAddShortUrl");
             //MergeGeneralWithBlogAndSchool();
             //TestReadSave();
@@ -41,12 +45,170 @@ namespace YacaParser
             //CreateBuilderCache();
             //TestMemory();
             //fill();
+            Console.ReadKey();
+        }
+        class Catalog
+        {
+            public Catalog(string n, string u)
+            {
+                name = n;
+                uri = u;
+            }
+            public string name;
+            public string uri;
+        }
+
+        static void MarkProduction()
+        {
+            var connectionString = "mongodb://localhost:27017/yandexCatalog_001";
+            var rep = new DownloaderRepository(new DownloaderDb(connectionString));
+            foreach (var item in rep.GetAll().Where(x => x.FullPath == null && x.Parent == "Производство и поставки"))
+            {
+                Console.Write('.');
+                item.FullPath = "/ROOT/Производство/"+item.Catalog;
+                rep.Save(item);
+            }//
+            foreach (var item in rep.GetAll().Where(x => x.Parent == "Выпускной" && x.FullPath == null))
+            {
+                item.Parent = "Все для праздника";
+                if (item.Catalog == "Поздравления")
+                {
+                    item.FullPath = "/ROOT/Дом/Все для праздника/Тосты и сценарии";
+                    item.Catalog = "Тосты и сценарии";
+                }
+                else
+                {
+                    item.FullPath = "/ROOT/Дом/Все для праздника/Организация праздников";
+                    item.Catalog = "Организация праздников";
+                }
+                rep.Save(item);
+            }
+        }
+        static void MarkRoot()
+        {
+            var connectionString = "mongodb://localhost:27017/yandexCatalog_001";
+            var rep = new DownloaderRepository(new DownloaderDb(connectionString));
+            var all = rep.GetAll();
+            foreach (var item in rep.GetAll().Where(x=>x.Catalog == "ROOT" && x.Parent == string.Empty))
+            {
+                Console.Write('.');
+                item.FullPath = "/ROOT";
+                rep.Save(item);
+            }
+        }
+
+        static void TransformYacaToFullPath()
+        {
+            var allSites = new Dictionary<string, YandexCatalog>(150000);
+            var connectionString = "mongodb://localhost:27017/yandexCatalog";
+            var reg = new Regex(@"(/(?<par>[-\w,. ]+))?/(?<cat>[-\w,. ]+)$");
+            var rep = new DownloaderRepository(new DownloaderDb(connectionString));
+            //var all = rep.GetAll();
+            var listConflict = new List<Catalog>();
+            var allCatalogNames = new List<string>();
+            var set = new HashSet<string>();
+            StreamReader reader = new StreamReader("TmpCatalogs.txt", Encoding.UTF8);
+            //Проверка конфликтов
+            while (!reader.EndOfStream)
+            {
+                var catalog = JsonConvert.DeserializeObject<Catalog>(reader.ReadLine().Replace("\n", string.Empty));
+                allCatalogNames.Add(catalog.name);
+                var match = reg.Match(catalog.name);
+                var par = match.Groups["par"].Value;
+                var cat = match.Groups["cat"].Value;
+                var pair = par + "/" + cat;
+                if (set.Contains(pair))
+                {
+                    listConflict.Add(catalog);
+                }
+                else set.Add(pair);
+                Console.WriteLine(par + "\n" + cat);
+                Console.WriteLine("\n");
+            }
+            Console.WriteLine("=============conflict================" + listConflict.Count);
+
+            Console.Write("Fill allSites...");
+            foreach (var yaca in rep.GetAll())
+            {
+                allSites.Add(yaca.Uri, yaca);
+            }
+            Console.WriteLine("done");
+
+            Parallel.ForEach(listConflict, cat =>
+            {
+                var m = reg.Match(cat.name);
+                var catName = m.Groups["cat"].Value;
+                var parName = m.Groups["par"].Value;
+                Spider.WaitCallback(new StateOptions(cat.uri, cat.name, x => {
+                    x.FullPath = cat.name;
+                    x.Catalog = catName;
+                    x.Parent = parName;
+                }, allSites));
+            });
+            Console.WriteLine("Обработка..");
+
+            Parallel.ForEach(allSites.Where(x => string.IsNullOrEmpty(x.Value.FullPath)).ToArray(), s =>
+            {
+                Console.Write('.');
+                foreach (var c in allCatalogNames)
+                {
+                    var match = reg.Match(c);
+                    var par = match.Groups["par"].Value;
+                    var cat = match.Groups["cat"].Value;
+                    if (cat == s.Value.Catalog && par == s.Value.Parent)
+                    {
+                        s.Value.FullPath = c;
+                        break;
+                    }
+                }
+            });
+            Console.Write("Saving...");
+            var rep2 = new DownloaderRepository(new DownloaderDb(connectionString + "_001"));
+            foreach (var item in allSites)
+            {
+                rep2.Save(item.Value);
+            }
+            Console.WriteLine("done");
+        }
+        static void SaveCatalogsPath()
+        {
+            string pattern = @"<a href=""(?<uri>[-\w/']*)"" class=""b-rubric__list__item__link"">(?<name>[-\w,. ]*)</a>";
+
+            var set = new HashSet<string> { @"http://yaca.yandex.ru" };
+            var queue = new Queue<Catalog>();
+            queue.Enqueue(new Catalog("/ROOT", @"http://yaca.yandex.ru"));
+
+            var writer = new StreamWriter("TmpCatalogs.txt", false, Encoding.UTF8);
+            while (queue.Any())
+            {
+                var catalog = queue.Dequeue();
+                Console.WriteLine("Next page : {0}", catalog.name);
+                var page = Download(catalog.uri);
+                var reg = new Regex(pattern);
+                var matches = reg.Matches(page);
+                foreach (Match match in matches)
+                {
+                    var uri = match.Groups["uri"].Value;
+                    var name = match.Groups["name"].Value;
+                    name = catalog.name + "/" + name;
+
+                    var tmp = new Catalog(name, uri);
+                    if (!set.Contains(uri))
+                    {
+                        queue.Enqueue(tmp);
+                        set.Add(uri);
+                    }
+
+                    writer.WriteLine(JsonConvert.SerializeObject(tmp));
+                }
+            }
+            Console.WriteLine("done");
         }
         static void Copy(string dbNameFrom, string dbNameTo)//Нужно было чтобы дописать ShortUrl в уже созданные DB
         {
             string connStr = "mongodb://localhost:27017/";
-            DownloaderRepository repFrom = new DownloaderRepository(new DownloaderDb(connStr+dbNameFrom));
-            DownloaderRepository repTo = new DownloaderRepository(new DownloaderDb(connStr+dbNameTo));
+            DownloaderRepository repFrom = new DownloaderRepository(new DownloaderDb(connStr + dbNameFrom));
+            DownloaderRepository repTo = new DownloaderRepository(new DownloaderDb(connStr + dbNameTo));
             var all = repFrom.GetAll();
             foreach (var it in all)
             {
@@ -62,7 +224,7 @@ namespace YacaParser
             int iter = 0;
             foreach (var it in all)
             {
-                Console.WriteLine(it.Uri +" -> "+it.ShortUrl);
+                Console.WriteLine(it.Uri + " -> " + it.ShortUrl);
                 iter++;
                 if (iter == 20)
                 {
@@ -83,7 +245,7 @@ namespace YacaParser
 
             foreach (var y in sb)
             {
-                YandexCatalog cat = repRes.GetById(y.Id) ?? new YandexCatalog { Id = y.Id, Uri = y.Uri, Description = y.Description};
+                YandexCatalog cat = repRes.GetById(y.Id) ?? new YandexCatalog { Id = y.Id, Uri = y.Uri, Description = y.Description };
                 cat.IsBlog = y.IsBlog;
                 cat.IsSchool = y.IsSchool;
                 repRes.Save(cat);
@@ -93,7 +255,7 @@ namespace YacaParser
         static void TestReadSave()
         {
             Queue<CatModel> queue = new Queue<CatModel>();
-            queue.Enqueue(new CatModel { Geo = "Rus", Name = "Envir" , Parent = "ROOT", Uri = "http://bla.bla"});
+            queue.Enqueue(new CatModel { Geo = "Rus", Name = "Envir", Parent = "ROOT", Uri = "http://bla.bla" });
             SaveQueue(queue);
             queue = null;
             ReadQueue(out queue);
@@ -227,7 +389,9 @@ namespace YacaParser
             string patternCountSites = @"<h2 class=""b-site-counter__number"">(?<cnt>\d*)[ \w]*</h2>";
             string patternAdditonal = @"<a href=""(?<uri>[-\w/]*)"" class=""b-additional-links__link "">(?<name>Товары и услуги|Советы|Энциклопедии|Форумы|Мероприятия)</a>";
             string patternRussia = @"<a href=""(?<uri>[-\w/]*)"" class=""b-additional-links__link "">(?<name>Россия)</a>";
+            string patternQuote = @"(?<=<span class=""b-result__quote"">Цитируемость:\s)\d+(?=</span>)";
 
+            Regex regQuote = new Regex(patternQuote);
             Regex regcnt = new Regex(patternCountSites);
             Regex regadd = new Regex(patternAdditonal);
             Regex regrus = new Regex(patternRussia);
@@ -238,6 +402,13 @@ namespace YacaParser
             wcli.Encoding = Encoding.UTF8;
 
             string page = wcli.DownloadString("http://yaca.yandex.ru/yca/geo/Russia/North_Caucasus/Kabardino-Balkaria/cat/Private_Life/");
+            var matchQuote = regQuote.Matches(page);
+
+            foreach (Match m in matchQuote)
+            {
+                Console.WriteLine(m.Value);
+            }
+
             MatchCollection matches = reg.Matches(page);
             int count = int.Parse(regcnt.Matches(page)[0].Groups["cnt"].Value);
             string uriRus = regrus.Matches(page)[0].Groups["uri"].Value;

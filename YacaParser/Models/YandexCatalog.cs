@@ -24,6 +24,9 @@ namespace YacaParser.Models
         public string Parent { get; set; }
 
         [BsonIgnoreIfNull]
+        public string FullPath { get; set; }
+
+        [BsonIgnoreIfNull]
         public string Description { get; set; }
 
         [BsonIgnoreIfNull]
@@ -36,6 +39,9 @@ namespace YacaParser.Models
             }
             set { _geo = value; }
         }
+
+        [BsonIgnoreIfNull]
+        public int? Quote { get; set; }
 
         [BsonIgnoreIfNull]
         public bool IsSchool { get; set; }

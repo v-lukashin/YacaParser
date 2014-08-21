@@ -29,12 +29,12 @@ namespace YacaParser
 
         Logger log = LogManager.GetCurrentClassLogger();
 
-        private static readonly CatModel rootElement = new CatModel { Uri = "/yca/cat/", Name = "ROOT", Parent = "", Geo = "Все регионы" };
-        private static readonly CatModel russiaElement = new CatModel { Uri = "/yca/geo/Russia/", Name = "ROOT", Parent = "", Geo = "Россия" };
+        private static readonly CatModel rootElement = new CatModel { Uri = "/yca/cat/", Name = "ROOT", Parent = "", FullPath = "/ROOT", Geo = "Все регионы" };
+        private static readonly CatModel russiaElement = new CatModel { Uri = "/yca/geo/Russia/", Name = "ROOT", Parent = "", FullPath = "/ROOT", Geo = "Россия" };
         Queue<CatModel> queue;
 
         private readonly DownloaderRepository _rep;
-        private const string _connectionString = "mongodb://localhost:27017/YandexCatalog1606m";
+        private const string _connectionString = "mongodb://localhost:27017/YandexCatalog";
 
         private const string pattern = @"<a href=""(?<uri>[-\w/']*)"" class=""b-rubric__list__item__link"">(?<name>[-\w,. ]*)</a>";
         private const string patternGeoDropdown = @"<a href=""(?<uri>[-\w/]*)"" class=""b-dropdown__link"">(?<name>[-\w ]*)</a>";
@@ -45,7 +45,9 @@ namespace YacaParser
         public Spider()
         {
             ThreadPool.SetMaxThreads(_poolSize, _poolSize);
-            _rep = new DownloaderRepository(new DownloaderDb(_connectionString));
+            var date = DateTime.Now;
+            var cs = string.Format(_connectionString + "_{0:d2}{1:d2}", date.Month, date.Day);
+            _rep = new DownloaderRepository(new DownloaderDb(cs));
 
             _visitedPages = new HashSet<string>();
 
@@ -112,6 +114,7 @@ namespace YacaParser
                         {
                             y.Catalog = catModel.Name;
                             y.Parent = catModel.Parent;
+                            y.FullPath = catModel.FullPath;
                             if (!y.Geo.Contains(catModel.Geo))
                                 y.Geo.Add(catModel.Geo);
                         };
@@ -139,7 +142,7 @@ namespace YacaParser
                         if (!_visitedPages.Contains(uri))
                         {
                             //добавить в очередь
-                            queue.Enqueue(new CatModel { Uri = uri, Name = name, Parent = catModel.Name, Geo = catModel.Geo });
+                            queue.Enqueue(new CatModel { Uri = uri, Name = name, Parent = catModel.Name, Geo = catModel.Geo, FullPath = catModel.FullPath+"/"+name });
 
                             Console.WriteLine("href : {0}// Name : {1}", uri, name);
                             _visitedPages.Add(uri);
@@ -159,7 +162,7 @@ namespace YacaParser
             }
             Saving();
         }
-        public void WaitCallback(object state)
+        public static void WaitCallback(object state)
         {
             StateOptions opt = (StateOptions)state;
             string link = opt.link;
@@ -168,7 +171,7 @@ namespace YacaParser
 
             Console.WriteLine("Обработка ссылки {0}", link);
             //Обработка текущей страницы 
-            ThreadPool.QueueUserWorkItem(Downloader.WaitCallback, new StateOptions(link, catalog, action));
+            ThreadPool.QueueUserWorkItem(Downloader.WaitCallback, new StateOptions(link, catalog, action, opt.cache));
 
             string page = DownloadPage(link);
             //Сначала synt2 обрабатываем, потом переходим к вложеным геолокациям
@@ -191,7 +194,7 @@ namespace YacaParser
                         )
                         + action;
 
-                    StateOptions options = new StateOptions(uri, catalog, act);
+                    StateOptions options = new StateOptions(uri, catalog, act, opt.cache);
                     if (i == 0)
                     {
                         //Запускаем на обкачку в новом потоке
@@ -200,7 +203,7 @@ namespace YacaParser
                     else
                     {
                         //В этом же потоке переходим к следующей геолокации
-                        this.WaitCallback(options);
+                        WaitCallback(options);
                         //ThreadPool.QueueUserWorkItem(this.WaitCallback, options);
                     }
                 }
@@ -285,6 +288,8 @@ namespace YacaParser
 
         void Saving()
         {
+            SaveState();
+
             Console.Write("Saving...");
             var val = AllSites.Values.ToArray();
             foreach (var v in val)
@@ -292,6 +297,7 @@ namespace YacaParser
                 _rep.Save(v);
             }
             Console.WriteLine("done");
+            log.Info("Saved {0} items. Visits {1}. Time {2}min", val.Length, countVisitsOnPages, sw.Elapsed.TotalMinutes);
         }
 
         void SaveState()
@@ -324,15 +330,22 @@ namespace YacaParser
             while (true)
             {
                 string line = Console.ReadLine();
-                Console.Write("\t\t\t\t\t\t\t");
+                var shift = "\t\t\t\t\t\t\t";
+                Console.Write(shift);
                 int a, s;
                 switch (line)
                 {
+                    case "all": Console.WriteLine("cnt = {0}", AllSites.Count);
+                                Console.WriteLine(shift+"Visits on pages {0}", countVisitsOnPages);
+                                Console.WriteLine(shift+"Queue lenght {0}", queue.Count);
+                                ThreadPool.GetAvailableThreads(out a, out s); Console.WriteLine(shift+"Available threads {0}/{1}", a, _poolSize);
+                                Console.WriteLine(shift+"Time working {0}min", sw.Elapsed.TotalMinutes);
+                                break;
                     case "save": Saving(); break;
                     case "vis": Console.WriteLine("Visits on pages {0}", countVisitsOnPages); break;
                     case "que": Console.WriteLine("Queue lenght {0}", queue.Count); break;
                     case "pool": ThreadPool.GetAvailableThreads(out a, out s); Console.WriteLine("Available threads {0}/{1}", a, _poolSize); break;
-                    case "save state": SaveState(); break;
+                    //case "save state": SaveState(); break;
                     case "time": Console.WriteLine("Time working {0}min", sw.Elapsed.TotalMinutes); break;
                     case "cnt":
                     default: Console.WriteLine("cnt = {0}", AllSites.Count); break;
