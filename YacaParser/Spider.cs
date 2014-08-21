@@ -25,7 +25,7 @@ namespace YacaParser
 
         private Stopwatch sw;
         private DateTime _prevTimeSaving;
-        private TimeSpan _periodSaving = TimeSpan.FromMinutes(10); 
+        private TimeSpan _periodSaving = TimeSpan.FromMinutes(10);
 
         Logger log = LogManager.GetCurrentClassLogger();
 
@@ -106,7 +106,7 @@ namespace YacaParser
                     SaveState();
                     CatModel catModel = queue.Dequeue();
                     log.Info("Извлечен следующий каталог {0}", catModel.Uri);
-                    
+
                     //Пропарсить каталог
                     if (catModel.Name != "ROOT")//не обрабатываем каталоги ROOT, т.к. занимет примерно треть времени(непомеченными останутся около 800)
                     {
@@ -122,7 +122,7 @@ namespace YacaParser
                         WaitCallback(new StateOptions(catModel.Uri, catModel.Name, action));
                     }
                     //сохранение не раньше 10 минут
-                    if(_prevTimeSaving < DateTime.Now - _periodSaving)
+                    if (_prevTimeSaving < DateTime.Now - _periodSaving)
                     {
                         Saving();
                         _prevTimeSaving = DateTime.Now;
@@ -142,7 +142,7 @@ namespace YacaParser
                         if (!_visitedPages.Contains(uri))
                         {
                             //добавить в очередь
-                            queue.Enqueue(new CatModel { Uri = uri, Name = name, Parent = catModel.Name, Geo = catModel.Geo, FullPath = catModel.FullPath+"/"+name });
+                            queue.Enqueue(new CatModel { Uri = uri, Name = name, Parent = catModel.Name, Geo = catModel.Geo, FullPath = catModel.FullPath + "/" + name });
 
                             Console.WriteLine("href : {0}// Name : {1}", uri, name);
                             _visitedPages.Add(uri);
@@ -220,13 +220,14 @@ namespace YacaParser
             q.Enqueue("/school");
 
             string link;
-            while(q.Any()){
+            while (q.Any())
+            {
                 link = q.Dequeue();
                 string page = DownloadPage(link);
                 Regex regCnt = new Regex(patternCountSites);
                 int cnt = int.Parse(regCnt.Match(page).Groups["cnt"].Value);
 
-                opt = new StateOptions(link, "School",y => y.IsSchool = true);
+                opt = new StateOptions(link, "School", y => y.IsSchool = true);
                 ThreadPool.QueueUserWorkItem(Downloader.WaitCallback, opt);
 
 
@@ -335,20 +336,14 @@ namespace YacaParser
                 int a, s;
                 switch (line)
                 {
-                    case "all": Console.WriteLine("cnt = {0}", AllSites.Count);
-                                Console.WriteLine(shift+"Visits on pages {0}", countVisitsOnPages);
-                                Console.WriteLine(shift+"Queue lenght {0}", queue.Count);
-                                ThreadPool.GetAvailableThreads(out a, out s); Console.WriteLine(shift+"Available threads {0}/{1}", a, _poolSize);
-                                Console.WriteLine(shift+"Time working {0}min", sw.Elapsed.TotalMinutes);
-                                break;
                     case "save": Saving(); break;
-                    case "vis": Console.WriteLine("Visits on pages {0}", countVisitsOnPages); break;
-                    case "que": Console.WriteLine("Queue lenght {0}", queue.Count); break;
-                    case "pool": ThreadPool.GetAvailableThreads(out a, out s); Console.WriteLine("Available threads {0}/{1}", a, _poolSize); break;
-                    //case "save state": SaveState(); break;
-                    case "time": Console.WriteLine("Time working {0}min", sw.Elapsed.TotalMinutes); break;
-                    case "cnt":
-                    default: Console.WriteLine("cnt = {0}", AllSites.Count); break;
+                    case "all":
+                    default: Console.WriteLine("cnt = {0}", AllSites.Count);
+                            Console.WriteLine(shift + "Visits on pages {0}", countVisitsOnPages);
+                            Console.WriteLine(shift + "Queue lenght {0}", queue.Count);
+                            ThreadPool.GetAvailableThreads(out a, out s); Console.WriteLine(shift + "Available threads {0}/{1}", a, _poolSize);
+                            Console.WriteLine(shift + "Time working {0:f4}min", sw.Elapsed.TotalMinutes);
+                            break;
                 }
             }
         }
